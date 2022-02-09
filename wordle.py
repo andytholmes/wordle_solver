@@ -1,7 +1,4 @@
-
-
-from os import remove
-from site import getuserbase
+import numpy as np
 
 
 def get_wordle_from_secret(guess, secret):
@@ -36,6 +33,43 @@ def get_wordle_from_secret(guess, secret):
                 g_check = g_check[:g] + 'X' + g_check[g+1:]
                 s_check = s_check[:s] + 'X' + s_check[s+1:]
                 continue
-
-
     return wordle
+
+
+def is_guess_a_valid_word(guess):
+
+    word_list = ['valid', 'tough']
+    ret_val = False
+
+    if guess in word_list:
+        ret_val = True
+
+    return ret_val
+
+
+def get_list_of_words(filepath):
+    text_file = open(filepath, "r")
+    file_str = text_file.read().strip()
+    words = file_str.split('\n')
+    text_file.close()
+    return words
+
+
+def save_list_of_words(words, filepath):
+    a_file = open(filepath, "w")
+    np.savetxt(a_file, words, fmt='%s')
+    a_file.close()
+    return
+
+
+# prepare_word_file('/usr/share/dict/words','words.txt')
+def prepare_word_file(from_filepath, to_filepath):
+    word_array = get_list_of_words(from_filepath)
+
+    good_words = []
+    for word in word_array:
+        if len(word) == 5:
+            good_words.append(word)
+
+    save_list_of_words(good_words, to_filepath)
+
