@@ -1,5 +1,4 @@
 import pytest
-from typing import List
 from unittest.mock import patch, mock_open, call
 from wordle import Word, Guess, \
                     get_wordle_from_secret, \
@@ -8,9 +7,7 @@ from wordle import Word, Guess, \
                     save_list_of_words, \
                     prepare_word_file, \
                     get_word_attributes, \
-                    parse_wordle, \
                     make_a_guess, \
-                    is_word_good_guess, \
                     guess_from_secret
 
 
@@ -160,18 +157,18 @@ def test_get_word_attributes__elements_ordered(mock_freq):
     ("taste", "GGGGG", "taste"),
     ("taste", "Y____", "_____"),
     ("taste", "YG___", "_a___")])
-def test_parse_wordle__finalword(word, wordle, expected):
+def test_add_wordle__finalword(word, wordle, expected):
     guess = Guess()
-    parse_wordle(guess, wordle, word)
+    guess.add_wordle(wordle, word)
     assert guess.final_word == expected
     assert word in guess.used_words
 
 
-def test_parse_wordle__included():
+def test_add_wordle__included():
     guess = Guess()
     wordle = 'Y____'
     word = 'taste'
-    parse_wordle(guess, wordle, word)
+    guess.add_wordle(wordle, word)
     assert 't' in guess.letters_in_word
 
 
@@ -181,7 +178,7 @@ def test_make_a_guess():
     word.word = 'soapy'
     word_array = [word]
     next_word = make_a_guess(word_array, guess)
-    assert next_word.word == 'soapy'
+    assert next_word == 'soapy'
 
 
 @pytest.mark.parametrize('word, final_word, expected', [
@@ -192,47 +189,60 @@ def test_make_a_guess():
 def test_is_word_good_guess__final_word(word, final_word, expected):
     guess = Guess()
     guess.final_word = final_word
-    assert is_word_good_guess(word, guess) == expected
+    assert guess.is_word_good_guess(word) == expected
 
-@pytest.mark.parametrize('word, excluded_letters, expected', [
-    ("abcde", ['a'], False),
-    ("abcde", ['f', 'a'], False),
-    ("abcde", [], True),
-    ("abcde", ['x'], True)
+
+@pytest.mark.parametrize('final_word, word, excluded_letters, expected', [
+    ("_____", "abcde", ['a'], False),
+    ("_____", "abcde", ['f', 'a'], False),
+    ("_____", "abcde", ['x'], True),
+    ("_____", "abcde", [], True),
+    # a letter may match an ordinal and then get exluded
+    ("a____", "abcde", ['a'], True)
 ])
-def test_is_word_good_guess__exluded_letters(word, excluded_letters, expected):
+def test_is_word_good_guess__exluded_letters(final_word, word,
+                                             excluded_letters,
+                                             expected):
     guess = Guess()
-    guess.final_word = '_____'
+    guess.final_word = final_word
     guess.excluded_letters = excluded_letters
-    assert is_word_good_guess(word, guess) == expected
+    assert guess.is_word_good_guess(word) == expected
 
 
-@pytest.mark.parametrize('word, excl_ord, expected', [
-    ("abcde", [['a']], False),
-    ("abcde", [['x'], ['b']], False),
-    ("abcde", [[]], True),
-    ("abcde", [['x']], True)
+@pytest.mark.parametrize('final_word, word, excl_ord, expected', [
+    ('_____', "abcde", [['a']], False),
+    ('_____', "abcde", [['x'], ['b']], False),
+    ('_____', "abcde", [[]], True),
+    ('_____', "abcde", [['x']], True)
 ])
-def test_is_word_good_guess__exluded_letters_ordinal(word, excl_ord, expected):
+def test_is_word_good_guess__exluded_letters_ordinal(final_word, word,
+                                                     excl_ord, expected):
     guess = Guess()
-    guess.final_word = '_____'
+    guess.final_word = final_word
     guess.excluded_letters_ordinal = excl_ord
-    assert is_word_good_guess(word, guess) == expected
+    assert guess.is_word_good_guess(word) == expected
 
 
 @patch('wordle.make_a_guess')
 @patch('wordle.save_list_of_words')
 @patch('wordle.get_wordle_from_secret')
-@patch('wordle.parse_wordle')
 def test_guess_from_secret(mock_make_guess,
                            mock_save_list_of_words,
-                           mock_get_wordle_from_secret,
-                           mock_parse_wordle):
+                           mock_get_wordle_from_secret):
     secret = 'abcdef'
     guess = Guess()
     guess.final_word = 'abcdef'
-    #mock_make_guess.side_effect = ['abcdef']
     expected = guess_from_secret(secret, guess)
-    #assert mock_get_wordle_from_secret.call_args == call('abcdef',
-    #                                                     "abcdef")
     assert expected is True
+
+
+def test_overall():
+    word_str_array = get_list_of_words("words.txt")
+    word_array = get_word_attributes(word_str_array)
+    guess = Guess()
+    guess.add_wordle('___GY', 'audio')
+    guess.add_wordle('_G_G_', 'motif')
+    guess.add_wordle('_G_G_', 'cosie')
+    guess.add_wordle('_G_G_', 'polio')
+    word = make_a_guess(word_array, guess)
+    assert word == 'robin'

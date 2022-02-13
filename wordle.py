@@ -36,9 +36,51 @@ class Guess:
         self.excluded_letters_ordinal = [[], [], [], [], []]
         self.excluded_letters = []
         self.used_words = []
+        self.wordles = []
 
     def __repr__(self):
-        return f"Word({self.final_word})"
+        return f"Guess({self.final_word})"
+
+    def is_word_good_guess(self, word: str):
+        for w in self.used_words:
+            if w == word:
+                return False
+
+        for i, letter in enumerate(word):
+            if self.final_word[i] == word[i]:
+                continue
+            if i < len(self.excluded_letters_ordinal) and \
+               letter in self.excluded_letters_ordinal[i]:
+                return False
+            if letter.upper() == letter:
+                return False
+            if letter in self.excluded_letters:
+                return False
+
+        for letter in self.letters_in_word:
+            if letter not in word:
+                return False
+
+        for i, letter in enumerate(self.final_word):
+            if letter == '_':
+                continue
+            if letter != word[i]:
+                return False
+        return True
+
+    def add_wordle(self, wordle: str, word: str):
+        for i, letter in enumerate(wordle):
+            if letter == 'G':
+                self.final_word = self.final_word[:i] + \
+                                word[i] + \
+                                self.final_word[i+1:]
+            if letter == 'Y':
+                self.excluded_letters_ordinal[i].append(word[i])
+                self.letters_in_word.append(word[i])
+            if letter == '_':
+                self.excluded_letters.append(word[i])
+        self.used_words.append(word)
+        self.wordles.append(wordle)
 
 
 def get_wordle_from_secret(guess, secret):
@@ -136,52 +178,10 @@ def get_word_attributes(words: List[str]) -> List[Word]:
     return n
 
 
-def parse_wordle(guess: Guess, wordle: str, word: str):
-    test_word = word
-    for i, letter in enumerate(wordle):
-        if letter == 'G':
-            guess.final_word = guess.final_word[:i] + \
-                               test_word[i] + \
-                               guess.final_word[i+1:]
-        if letter == 'Y':
-            guess.excluded_letters_ordinal[i].append(test_word[i])
-            guess.letters_in_word.append(test_word[i])
-        if letter == '_':
-            guess.excluded_letters.append(test_word[i])
-    guess.used_words.append(test_word)
-
-
-def is_word_good_guess(word: str, guess: Guess):
-    for w in guess.used_words:
-        if w == word:
-            return False
-
-    for i, letter in enumerate(word):
-        if i < len(guess.excluded_letters_ordinal) and \
-           letter in guess.excluded_letters_ordinal[i]:
-            return False
-        if letter.upper() == letter:
-            return False
-        if letter in guess.excluded_letters:
-            return False
-
-    for letter in guess.letters_in_word:
-        if letter not in word:
-            return False
-
-    for i, letter in enumerate(guess.final_word):
-        if letter == '_':
-            continue
-        if letter != word[i]:
-            return False
-
-    return True
-
-
-def make_a_guess(word_array, guess: Guess) -> Word:
+def make_a_guess(word_array: Word, guess: Guess):
     for word in word_array:
-        if is_word_good_guess(word.word, guess) is True:
-            return word
+        if guess.is_word_good_guess(word.word) is True:
+            return word.word
     return ''
 
 
